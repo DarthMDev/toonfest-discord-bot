@@ -53,7 +53,9 @@ async def on_ready():
 # send the message at 12 am est every day
 @tasks.loop()
 async def send_message():
-    await send_remaining_time()
+    # if there is no existing message , send a new one
+    # if not , edit the existing message
+    await send_remaining_time(manual_override=False)
 
 # bot command to get the remaining time till may 24th
 @bot.tree.command(
@@ -62,8 +64,7 @@ async def send_message():
     guild=discord.Object(id=guild_id)
 )   
 async def remaining_time(ctx):
-    remaining_days, remaining_hours, remaining_minutes = get_remaining_time()
-    await ctx.send(f"Remaining time till Toonfest: {remaining_days} days, {remaining_hours} hours, {remaining_minutes} minutes")
+    await send_remaining_time(manual_override=True)
    
                                                     
 def get_remaining_time():
@@ -74,16 +75,27 @@ def get_remaining_time():
     remaining = may_24 - today
     return remaining.days, remaining.seconds // 3600, (remaining.seconds % 3600) // 60
 
-async def send_remaining_time():
+async def send_remaining_time(manual_override=False):
     remaining_days, remaining_hours, remaining_minutes = get_remaining_time()
     guild = bot.get_guild(guild_id)
     channel = guild.get_channel(channel_id)
-    if channel:
+    if channel and manual_override:
         await channel.send(f"Remaining time till Toonfest: {remaining_days} days, {remaining_hours} hours, {remaining_minutes} minutes")
+    elif not manual_override:
+        await edit_remaining_time_message()
     else:
         print("Channel not found")
         return
 
+async def edit_remaining_time_message():
+    remaining_days, remaining_hours, remaining_minutes = get_remaining_time()
+    guild = bot.get_guild(guild_id)
+    channel = guild.get_channel(channel_id)
+    async for message in channel.history(limit=200):
+        if message.author == bot.user:
+            await message.edit(content=f"Remaining time till Toonfest: {remaining_days} days, {remaining_hours} hours, {remaining_minutes} minutes")
+            return
+        
 @bot.tree.command(name='sync', description='Owner only')
 async def sync(interaction: discord.Interaction):
     if interaction.user.id == 195297683907411970:
