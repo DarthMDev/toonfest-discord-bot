@@ -28,7 +28,7 @@ def main():
     bot.run(token)
 
 # bot command to set the channel to send the message in , need to have the Admin role to use this command
-@bot.tree.command(
+@bot.hybrid_command(
     name='set_channel',
     description='Set the channel to send the message in',
     guild=discord.Object(id=guild_id)
@@ -58,13 +58,14 @@ async def send_message():
     await send_remaining_time(manual_override=False)
 
 # bot command to get the remaining time till may 24th
-@bot.tree.command(
+@bot.hybrid_command(
     name='remaining_time',
     description='Get the remaining time till toonfest',
     guild=discord.Object(id=guild_id)
 )   
 async def remaining_time(ctx):
-    await send_remaining_time(manual_override=True)
+    current_channel = ctx.channel
+    await send_remaining_time(manual_override=True, channel=current_channel)
    
                                                     
 def get_remaining_time():
@@ -75,10 +76,11 @@ def get_remaining_time():
     remaining = may_24 - today
     return remaining.days, remaining.seconds // 3600, (remaining.seconds % 3600) // 60
 
-async def send_remaining_time(manual_override=False):
+async def send_remaining_time(manual_override=False, channel=None):
     remaining_days, remaining_hours, remaining_minutes = get_remaining_time()
     guild = bot.get_guild(guild_id)
-    channel = guild.get_channel(channel_id)
+    if not channel:
+        channel = guild.get_channel(channel_id)
     if channel and manual_override:
         await channel.send(f"Remaining time till Toonfest: {remaining_days} days, {remaining_hours} hours, {remaining_minutes} minutes")
     elif not manual_override:
