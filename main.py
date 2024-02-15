@@ -41,6 +41,11 @@ async def set_channel(ctx, channel: discord.TextChannel):
     else:
         await ctx.send("You need to have the Manage Channels permission to use this command")
 
+# set the status to the remaining time till toonfest in days 
+async def set_status():
+    remaining_days, _, _ = get_remaining_time()
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"Toonfest's status: {remaining_days} days "))
+
 @bot.event
 async def on_ready():
     now = datetime.datetime.now(timezone)
@@ -48,6 +53,7 @@ async def on_ready():
     remaining_time = (midnight - now).total_seconds()
     send_message.change_interval(seconds=remaining_time)
     send_message.start()
+    await set_status()
     print("Bot is ready")
 
 # send the message at 12 am est every day
@@ -56,6 +62,7 @@ async def send_message():
     # if there is no existing message , send a new one
     # if not , edit the existing message
     await send_remaining_time(manual_override=False)
+    await set_status()
 
 # bot command to get the remaining time till may 24th
 @bot.hybrid_command(
