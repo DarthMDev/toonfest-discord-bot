@@ -1,8 +1,10 @@
 # discord bot that will send a message every day on the reaming days till may 24th
 # user will use a command to setup the channel it will send the message in
+import io
 import os
 import datetime
 import json 
+import aiohttp
 import asyncio 
 import discord
 from discord import app_commands
@@ -20,7 +22,7 @@ global bot
 intents = discord.Intents.default()
 intents.message_content = True
 guild_id = 1111422999741083710
-channel_id = 1202307374115995719
+channel_id = 1204161676522291261
 
 bot =  commands.Bot(command_prefix='!', intents=intents)
 
@@ -74,7 +76,8 @@ async def remaining_time(ctx):
     current_channel = ctx.channel
     await send_remaining_time(manual_override=True, channel=current_channel)
    
-                                                    
+
+
 def get_remaining_time():
     # return the remaining days, hours and minutes till may 24th
     today = datetime.datetime.now()
@@ -104,7 +107,19 @@ async def edit_remaining_time_message():
         if message.author == bot.user:
             await message.edit(content=f"Remaining time till Toonfest: {remaining_days} days, {remaining_hours} hours, {remaining_minutes} minutes")
             return
-        
+# bot command to get the current schedule image and send it to the channel message was sent
+# in
+@bot.hybrid_command(
+    name='getschedule',
+    description='Get the current schedule',
+    guild=discord.Object(id=guild_id)
+)
+async def get_schedule(ctx):
+    guild = bot.get_guild(guild_id)
+    channel = ctx.channel
+    await channel.send(file=discord.File('images/24-4-17_toonfest24schedule.png'))
+
+
 @bot.tree.command(name='sync', description='Owner only')
 async def sync(interaction: discord.Interaction):
     if interaction.user.id == 195297683907411970:
