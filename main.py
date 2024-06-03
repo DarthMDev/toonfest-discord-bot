@@ -79,9 +79,9 @@ async def remaining_time(ctx):
 
 
 def get_remaining_time():
-    # return the remaining days, hours and minutes till may 24th
+    # return the remaining days, hours and minutes till December 6th
     today = datetime.datetime.now()
-    may_24 = datetime.datetime(2024, 5, 24, 12)
+    may_24 = datetime.datetime(2024, 12, 6, 12)
     
     remaining = may_24 - today
     return remaining.days, remaining.seconds // 3600, (remaining.seconds % 3600) // 60
