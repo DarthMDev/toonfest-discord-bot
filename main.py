@@ -101,8 +101,12 @@ async def play_from_queue(ctx):
     player.play(discord.FFmpegPCMAudio("yt_song.mp3"), after=lambda e: asyncio.run_coroutine_threadsafe(play_from_queue(ctx), ctx.bot.loop))
     title = dl.extract_info(url, download=False).get('title', None)
     await ctx.send(f"Playing: {title}")
-    if os.path.exists('yt_song.mp3'):
+    # after its done playing the song, delete the file
+    if os.path.exists("yt_song.mp3"):
         os.remove("yt_song.mp3")
+    if os.path.exists('yt_song.mp3.mp3'):
+        os.remove('yt_song.mp3.mp3')
+   
 
 # bot command to download and play music locally, supports youtube and local files
 @bot.hybrid_command(
