@@ -77,6 +77,32 @@ async def remaining_time(ctx):
     current_channel = ctx.channel
     await send_remaining_time(manual_override=True, channel=current_channel)
    
+song_queue = []
+async def play_from_queue(ctx):
+    if not song_queue:
+        return  # Exit if the queue is empty
+    url = song_queue.pop(0)  # Get the first song in the queue
+    # The rest of the code is similar to the play function, but adapted for queue playback
+    if not ctx.guild.voice_client:
+        player = await ctx.author.voice.channel.connect()
+    else:
+        player = ctx.guild.voice_client
+    options = {
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192"
+        }],
+        "format": "bestaudio/best",
+        "outtmpl": "yt_song"
+    }
+    with youtube_dl.YoutubeDL(options) as dl:
+        dl.download([url])
+    player.play(discord.FFmpegPCMAudio("yt_song.mp3"), after=lambda e: asyncio.run_coroutine_threadsafe(play_from_queue(ctx), ctx.bot.loop))
+    title = dl.extract_info(url, download=False).get('title', None)
+    await ctx.send(f"Playing: {title}")
+    if os.path.exists('yt_song.mp3'):
+        os.remove("yt_song.mp3")
 
 # bot command to download and play music locally, supports youtube and local files
 @bot.hybrid_command(
@@ -84,36 +110,18 @@ async def remaining_time(ctx):
     description='Play music',
     guild=discord.Object(id=guild_id)
 )
+
+
 async def play(ctx, url: str):
     if ctx.author.voice.channel:
-        if not ctx.guild.voice_client:
-            player = await ctx.author.voice.channel.connect()
+        if ctx.guild.voice_client and ctx.guild.voice_client.is_playing():
+            song_queue.append(url)  # Add song to queue if something is already playing
+           # tell the user what position the queue its in
+            await ctx.send(f"Added to queue. Position: {len(song_queue)}")
         else:
-            player = ctx.guild.voice_client
-        options = {
-            "postprocessors":[{
-                "key": "FFmpegExtractAudio", # download audio only
-                "preferredcodec": "mp3", # other acceptable types "wav" etc.
-                "preferredquality": "192" # 192kbps audio
-            }],
-            "format": "bestaudio/best",
-            "outtmpl": "yt_song" # downloaded file name
-        }
-        with youtube_dl.YoutubeDL(options) as dl:
-            dl.download([url])
-        player.play(discord.FFmpegPCMAudio("yt_song.mp3"))
-        playing = player.is_playing()
-        title = dl.extract_info(url, download=False).get('title', None)
-        await ctx.send("Playing: %s" % title)
-        while playing: # not compulsory
-            await asyncio.sleep(1)
-            playing = player.is_playing()
-        os.remove("yt_song.mp3") # delete the file after use
-        
-    
-      # else send a message to join a voice channel
-    else:
-          await ctx.send("You need to be in a voice channel to use this command")
+            song_queue.append(url)  # Add to queue regardless, to simplify logic
+            await ctx.send(f"Added to queue. Position: {len(song_queue)}")
+            await play_from_queue(ctx)  # Start playing from queue immediately
 
 
 
