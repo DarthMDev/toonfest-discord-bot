@@ -11,6 +11,7 @@ from discord import app_commands
 import pytz
 from discord.ext import tasks 
 from discord.ext import commands
+import yt_dlp as youtube_dl 
 
 # set the timezone to  Central Time
 timezone = pytz.timezone('US/Central')
@@ -77,7 +78,93 @@ async def remaining_time(ctx):
     await send_remaining_time(manual_override=True, channel=current_channel)
    
 
+# bot command to download and play music locally, supports youtube and local files
+@bot.hybrid_command(
+    name='play',
+    description='Play music',
+    guild=discord.Object(id=guild_id)
+)
+async def play(ctx, url: str):
+    if ctx.author.voice.channel:
+        if not ctx.guild.voice_client:
+            player = await ctx.author.voice.channel.connect()
+        else:
+            player = ctx.guild.voice_client
+        options = {
+            "postprocessors":[{
+                "key": "FFmpegExtractAudio", # download audio only
+                "preferredcodec": "mp3", # other acceptable types "wav" etc.
+                "preferredquality": "192" # 192kbps audio
+            }],
+            "format": "bestaudio/best",
+            "outtmpl": "yt_song" # downloaded file name
+        }
+        with youtube_dl.YoutubeDL(options) as dl:
+            dl.download([url])
+        player.play(discord.FFmpegPCMAudio("yt_song.mp3"))
+        playing = player.is_playing()
+        title = dl.extract_info(url, download=False).get('title', None)
+        await ctx.send("Playing: %s" % title)
+        while playing: # not compulsory
+            await asyncio.sleep(1)
+            playing = player.is_playing()
+        os.remove("yt_song.mp3") # delete the file after use
+        
+    
+      # else send a message to join a voice channel
+    else:
+          await ctx.send("You need to be in a voice channel to use this command")
 
+
+
+# command to clear the song queue and leave the voice channel
+@bot.hybrid_command(
+    name='leave',
+    description='Leave the voice channel',
+    guild=discord.Object(id=guild_id)
+)
+async def leave(ctx):
+    voice_channel = ctx.author.voice.channel
+    if voice_channel:
+        voice = ctx.guild.voice_client
+        voice.stop()
+        await voice.disconnect()
+    else:
+        await ctx.send("You need to be in a voice channel to use this command")
+
+
+# command to pause the music
+@bot.hybrid_command(
+    name='pause',
+    description='Pause the music',
+    guild=discord.Object(id=guild_id)
+)
+async def pause(ctx):
+    voice_channel = ctx.author.voice.channel
+    if voice_channel:
+       # assume bot is already in vc
+        voice = ctx.guild.voice_client
+        voice.pause()
+    else:
+        await ctx.send("You need to be in a voice channel to use this command")
+
+# command to resume the music
+@bot.hybrid_command(
+    name='resume',
+    description='Resume the music',
+    guild=discord.Object(id=guild_id)
+)
+async def resume(ctx):
+    voice_channel = ctx.author.voice.channel
+    if voice_channel:
+        voice = ctx.guild.voice_client
+        voice.resume()
+    else:
+        await ctx.send("You need to be in a voice channel to use this command")
+
+
+
+           
 def get_remaining_time():
     # return the remaining days, hours and minutes till December 6th
     today = datetime.datetime.now()
