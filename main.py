@@ -78,6 +78,9 @@ class Cavalcade(object):
             # recharging
             # announce it 26 minutes past the hour
             next_cavalcade = now.replace(minute=26, second=0, microsecond=0)
+            if minute > 39:
+                # add an hour to the next cavalcade time
+                next_cavalcade += datetime.timedelta(hours=1)
         elif minute >= 25 and minute <= 30:
             # in-transit
             # 30 minute past now
