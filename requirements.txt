@@ -1,0 +1,4 @@
+aiohttp
+discord
+pytz
+yt-dlp

@@ -12,7 +12,6 @@ import pytz
 from discord.ext import tasks 
 from discord.ext import commands
 import yt_dlp as youtube_dl 
-
 # set the timezone to  Central Time
 timezone = pytz.timezone('US/Central')
  # grab the token from config.json 
@@ -25,9 +24,72 @@ intents.message_content = True
 guild_id = 1111422999741083710
 channel_id = 1204161676522291261
 
+def convert_seconds_to_ms(total_seconds):
+    # Convert total seconds to minutes, and seconds
+    minutes, seconds = divmod(total_seconds, 60)
+    # round  the seconds
+    minutes = int(minutes)
+    seconds = round(seconds)
+    return f"{minutes} minutes and {seconds} seconds"
 bot =  commands.Bot(command_prefix='!', intents=intents)
+class Cavalcade(object):
+    # class that handles getting the information from https://toontownrewritten.com/api/cavalcade and interpretting it
+    def __init__(self):
+        self.url = "https://toontownrewritten.com/api/cavalcade"
+        self.data = {}
 
-def main():   
+    async def initialize(self):
+        await self.update_data()
+        
+    async def update_data(self):
+        # update the data from the api
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self.url) as response:
+                self.data = await response.json()
+
+    def get_cavalcade(self):
+        # return the cavalcade data
+        return self.data
+    
+    def get_cavalcade_location(self):
+        # return the cavalcade location
+        return self.data['paradeLocationString']
+    
+    def get_cavalcade_location_num(self):
+        # return the cavalcade location
+        return self.data['paradeLocation']
+    
+    def get_cavalcade_status(self):
+        # return the cavalcade status
+        # can be recharging, active,  or in-transit
+        return self.data['paradeStatus']
+    
+    def get_cavalcade_time(self):
+        """
+        Get the remaining time till the next cavalcade event
+        """
+        # if minute is less than 25 or greater than 39, the cavalcade is recharging
+        # if the minute is between 26 and 30, this will be the transit period
+        # otherwise the cavalcade is active
+        now = datetime.datetime.now(timezone)
+        minute = now.minute
+        # get the next cavalcade time
+        if minute < 25 or minute > 39:
+            # recharging
+            # announce it 26 minutes past the hour
+            next_cavalcade = now.replace(minute=26, second=0, microsecond=0)
+        elif minute >= 25 and minute <= 30:
+            # in-transit
+            # 30 minute past now
+            next_cavalcade = now.replace(minute=30, second=0, microsecond=0)
+        else:
+            return 0
+        return (next_cavalcade - now).total_seconds()
+        
+        
+    
+def main():
+    asyncio.run(Cavalcade().initialize())
     bot.run(token)
 
 # bot command to set the channel to send the message in , need to have the Admin role to use this command
@@ -66,6 +128,28 @@ async def send_message():
     # if not , edit the existing message
     await send_remaining_time(manual_override=False)
     await set_status()
+
+# bot command to get the current cavalcade status
+@bot.hybrid_command(
+    name='cavalcade',
+    description='Get the current cavalcade status',
+    guild=discord.Object(id=guild_id)
+)
+async def cavalcade(ctx):
+    cavalcade = Cavalcade()
+    # initialize it
+    await cavalcade.initialize()
+    cavalcade_data = cavalcade.get_cavalcade()
+    location = cavalcade.get_cavalcade_location()
+    status = cavalcade.get_cavalcade_status()
+    time = cavalcade.get_cavalcade_time()
+    new_time = convert_seconds_to_ms(time)
+    if status == "recharging":
+        await ctx.send(f"The cavalcade is recharging. Check back in: {new_time}")
+    elif status == "active":
+        await ctx.send(f"The cavalcade is currently active at {location}")
+    elif status == "in-transit":
+        await ctx.send(f"The cavalcade is in transit. It is heading to {location}. Check back in: {new_time}")
 
 # bot command to get the remaining time till may 24th
 @bot.hybrid_command(
