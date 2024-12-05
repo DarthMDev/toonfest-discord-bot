@@ -303,7 +303,7 @@ async def edit_remaining_time_message():
 async def get_schedule(ctx):
     guild = bot.get_guild(guild_id)
     channel = ctx.channel
-    await channel.send(file=discord.File('images/24-4-17_toonfest24schedule.png'))
+    await channel.send(file=discord.File('images/tfc24-event-schedule.png'))
 
 
 @bot.tree.command(name='sync', description='Owner only')
