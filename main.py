@@ -12,8 +12,8 @@ import pytz
 from discord.ext import tasks 
 from discord.ext import commands
 import yt_dlp as youtube_dl 
-# set the timezone to  Central Time
-timezone = pytz.timezone('US/Central')
+# set the timezone to  Eastern Time
+timezone = pytz.timezone('US/Eastern')
  # grab the token from config.json 
 with open('config.json') as f:
     config = json.load(f)
@@ -265,11 +265,11 @@ async def resume(ctx):
 
            
 def get_remaining_time():
-    # return the remaining days, hours and minutes till December 6th
+    # return the remaining days, hours and minutes till August 8th 
     today = datetime.datetime.now()
-    may_24 = datetime.datetime(2024, 12, 6, 12)
+    toonfest_date = datetime.datetime(2025, 8, 8)
     
-    remaining = may_24 - today
+    remaining = toonfest_date - today
     return remaining.days, remaining.seconds // 3600, (remaining.seconds % 3600) // 60
 
 async def send_remaining_time(manual_override=False, channel=None):
