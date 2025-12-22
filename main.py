@@ -181,7 +181,8 @@ async def play_from_queue(ctx):
             "preferredquality": "192"
         }],
         "format": "bestaudio/best",
-        "outtmpl": "yt_song"
+        "outtmpl": "yt_song",
+        'cookiefile': 'cookies.txt'
     }
     with youtube_dl.YoutubeDL(options) as dl:
         dl.download([url])
